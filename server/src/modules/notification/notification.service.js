@@ -1,16 +1,8 @@
-const nodemailer = require("nodemailer");
+const { BrevoClient } = require("@getbrevo/brevo");
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: process.env.SMTP_SECURE === "true",
-
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    },
+const brevo = new BrevoClient({
+    apiKey: process.env.BREVO_API_KEY,
 });
-
 
 const sendEmail = async ({
     to,
@@ -19,30 +11,36 @@ const sendEmail = async ({
     text,
 }) => {
     try {
-        const mailOptions = {
-            from: `"${process.env.SMTP_FROM}" <${process.env.SMTP_USER}>`,
-            to,
+        const result = await brevo.transactionalEmails.sendTransacEmail({
+            sender: {
+                name: process.env.BREVO_FROM_NAME || "Hello, Shoppie!",
+                email: process.env.BREVO_FROM_EMAIL,
+            },
+            to: [
+                {
+                    email: to,
+                },
+            ],
             subject,
-            text,
-            html,
-        };
+            htmlContent: html,
+            textContent: text,
+        });
 
-        const info = await transporter.sendMail(mailOptions);
-
-        console.log("📧 Email sent successfully:", info.messageId);
+        console.log(
+            "📧 Email sent successfully:",
+            result.messageId
+        );
 
         return {
             success: true,
-            messageId: info.messageId,
+            messageId: result.messageId,
         };
-
     } catch (error) {
         console.error("❌ Email sending failed:", error);
 
         throw error;
     }
 };
-
 
 /*
  * Send order confirmation email
